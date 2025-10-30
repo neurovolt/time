@@ -6,7 +6,7 @@
   <title>Smooth Flip Clock</title>
   <style>
     body {
-      background: #222;
+      background: #111;
       color: #fff;
       font-family: 'Roboto Mono', monospace;
       display: flex;
@@ -14,17 +14,84 @@
       align-items: center;
       height: 100vh;
     }
+
     .clock {
       display: flex;
       gap: 12px;
     }
-    <style>
-    body {
-      background: #222;
-      ...
+
+    .flip-unit {
+      position: relative;
+      width: 80px;
+      height: 120px;
+      perspective: 800px;
     }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-face {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #222;
+      border-radius: 6px;
+      font-size: 3em;
+      overflow: hidden;
+      backface-visibility: hidden;
+    }
+
+    .card-face.top {
+      border-bottom: 2px solid #333;
+      transform-origin: bottom;
+    }
+
+    .card-face.bottom {
+      border-top: 2px solid #333;
+      transform-origin: top;
+      transform: rotateX(180deg);
+    }
+
+    .flip {
+      position: absolute;
+      width: 100%;
+      height: 50%;
+      overflow: hidden;
+      left: 0;
+    }
+
+    .flip.top {
+      top: 0;
+      transform-origin: bottom;
+      background: #222;
+      animation: flipTop 0.5s forwards;
+    }
+
+    .flip.bottom {
+      bottom: 0;
+      transform-origin: top;
+      background: #222;
+      animation: flipBottom 0.5s forwards;
+    }
+
+    @keyframes flipTop {
+      0% { transform: rotateX(0deg); }
+      100% { transform: rotateX(-90deg); }
+    }
+
+    @keyframes flipBottom {
+      0% { transform: rotateX(90deg); }
+      100% { transform: rotateX(0deg); }
+    }
+
     .colon {
-      font-size: 2.6em;
+      font-size: 3em;
       align-self: center;
       color: #ff7f50;
       width: 20px;
@@ -43,10 +110,11 @@
     <div class="flip-unit" id="s1"></div>
     <div class="flip-unit" id="s2"></div>
   </div>
+
   <script>
-    function createFlipUnit(container, initial) {
+    function createUnit(container, initial) {
       container.innerHTML = `
-        <div class="flip-card">
+        <div class="card">
           <div class="card-face top">${initial}</div>
           <div class="card-face bottom">${initial}</div>
         </div>
@@ -54,16 +122,29 @@
     }
 
     function flipTo(container, newVal) {
-      const card = container.querySelector('.flip-card');
-      const top = card.querySelector('.top');
-      const bottom = card.querySelector('.bottom');
-      if (top.textContent == newVal) return;
-      bottom.textContent = newVal;
-      card.classList.add('flipping');
-      card.addEventListener('transitionend', function handler() {
+      const top = container.querySelector('.card-face.top');
+      const bottom = container.querySelector('.card-face.bottom');
+      const currentVal = top.textContent;
+
+      if (currentVal === newVal) return;
+
+      const topFlip = document.createElement('div');
+      const bottomFlip = document.createElement('div');
+      topFlip.classList.add('flip', 'top');
+      bottomFlip.classList.add('flip', 'bottom');
+      topFlip.textContent = currentVal;
+      bottomFlip.textContent = newVal;
+
+      container.append(topFlip, bottomFlip);
+
+      topFlip.addEventListener('animationend', () => {
         top.textContent = newVal;
-        card.classList.remove('flipping');
-        card.removeEventListener('transitionend', handler);
+        topFlip.remove();
+      });
+
+      bottomFlip.addEventListener('animationend', () => {
+        bottom.textContent = newVal;
+        bottomFlip.remove();
       });
     }
 
@@ -76,17 +157,23 @@
     }
 
     const ids = ['h1','h2','m1','m2','s1','s2'];
-    ids.forEach((id,i) => createFlipUnit(document.getElementById(id), getTimeDigits()[i]));
+    const digits = getTimeDigits();
 
-    let lastDigits = getTimeDigits();
+    ids.forEach((id, i) => {
+      const el = document.getElementById(id);
+      createUnit(el, digits[i]);
+    });
+
+    let lastDigits = digits;
+
     setInterval(() => {
-      const digits = getTimeDigits();
-      digits.forEach((d,i) => {
+      const newDigits = getTimeDigits();
+      newDigits.forEach((d, i) => {
         if (d !== lastDigits[i]) {
           flipTo(document.getElementById(ids[i]), d);
         }
       });
-      lastDigits = digits;
+      lastDigits = newDigits;
     }, 1000);
   </script>
 </body>
